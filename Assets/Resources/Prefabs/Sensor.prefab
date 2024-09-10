@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5962507371933044236}
   - component: {fileID: 4284991729031698204}
   - component: {fileID: 1466635415059874964}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Sensor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -120,3 +120,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7164dfb3cd05ab4282df26fca850855, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  energy: 0
+  AdjSensor: {fileID: 0}
+  ReceivingSensors: []
+  InRadiusSensor: []
+  DistFromMobileSink: 0

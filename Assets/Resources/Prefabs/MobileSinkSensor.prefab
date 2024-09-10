@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MobileSinkSensor
       objectReference: {fileID: 0}
+    - target: {fileID: 7356591655958207087, guid: 69183177d0d517a45bc19c9445fdc607, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9019412885858621678, guid: 69183177d0d517a45bc19c9445fdc607, type: 3}
       propertyPath: m_LocalPosition.x
       value: 25.48
