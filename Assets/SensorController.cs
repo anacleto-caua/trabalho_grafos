@@ -24,6 +24,8 @@ public class SensorController : MonoBehaviour
 
     public float NetworkMaxRadius = 5.0f;
 
+    public bool isSource;
+
     #region BlinkingVars
     //Blinking Interval Const
     public const float  BLINKING_INTERVAL = .3f;
@@ -43,6 +45,10 @@ public class SensorController : MonoBehaviour
     {
         Network = new List<SensorController>();
         InRadiusSensors = new List<SensorController>();
+
+        DEFAULT_MATERIAL = Resources.Load<Material>("Materials/Yellow");
+        BLINKING_MATERIAL = Resources.Load<Material>("Materials/Red");
+
     }
 
     void Update()
@@ -147,9 +153,6 @@ public class SensorController : MonoBehaviour
 
     public void SetBlink()
     {
-        DEFAULT_MATERIAL = Resources.Load<Material>("Materials/Yellow");
-        BLINKING_MATERIAL = Resources.Load<Material>("Materials/Red");
-        
         if (!isOnBlinking) {
             blinkingTimer = BLINKING_INTERVAL;
             isOnBlinking = true;
@@ -161,6 +164,11 @@ public class SensorController : MonoBehaviour
 
     public void ConfigSensors(List<SensorController> sensors) {
         Network = sensors;
+    }
+
+    public void SetAsSource()
+    {
+        isSource = true;
     }
 
 }
