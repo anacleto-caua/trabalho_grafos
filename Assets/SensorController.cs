@@ -1,30 +1,36 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class SensorController : MonoBehaviour
+public class SensorController : MonoBehaviour, IComparable<SensorController>
 {
 
     List<SensorController> Network;
 
-    public int energy;
-    
-    public SensorController AdjSensor;
-
     public List<SensorController> ReceivingSensors;
-
-    public Info Info;
+    
+    public GameObject AdjSensor;
 
     public List<SensorController> InRadiusSensors;
 
+    public LineRenderer line;
+
+    #region Params
+    public Info Info;
+
+    public int energy;
+
     public float DistFromMobileSink;
+    
+    float NetworkMaxRadius = 7.0f;
 
-    public float NetworkMaxRadius = 5.0f;
-
-    public bool isSource;
+    public bool isSource = false;
+    #endregion Params
 
     #region BlinkingVars
     //Blinking Interval Const
@@ -43,19 +49,35 @@ public class SensorController : MonoBehaviour
 
     void Start()
     {
-        Network = new List<SensorController>();
-        InRadiusSensors = new List<SensorController>();
+        //Network = new List<SensorController>();
+        //InRadiusSensors = new List<SensorController>();
 
         DEFAULT_MATERIAL = Resources.Load<Material>("Materials/Yellow");
         BLINKING_MATERIAL = Resources.Load<Material>("Materials/Red");
 
+        line = this.GetComponent<LineRenderer>();
     }
 
     void Update()
     {
+        // Set the number of positions
+        line.positionCount = 2;
 
+        // Set the positions (point A and point B)
+        line.SetPosition(0, this.transform.position); // Point A
+        line.SetPosition(1, AdjSensor.transform.position); // Point B
 
-        ReCalcHandler();
+        // Set the color of the line to red
+        line.startColor = Color.red;
+        line.endColor = Color.red;
+
+        // Optionally, set the width of the line
+        line.startWidth = 0.1f;
+        line.endWidth = 0.1f;
+
+        //Debug.DrawLine(transform.position, AdjSensor.transform.position, Color.red);
+        //ReCalcHandler();
+        
         BlinkHandler();
     }
 
@@ -129,9 +151,30 @@ public class SensorController : MonoBehaviour
             {
                 continue;
             }
+            if(collider.TryGetComponent(out MobileSinkSensor sensor))
+            {
+                AdjSensor = collider.gameObject;
+                continue;
+            }
 
             InRadiusSensors.Add(collider.GetComponent<SensorController>());
         }
+    }
+
+    public void SetAdjSensor()
+    {
+        LayerMask sinkLayer = LayerMask.GetMask("MobileSink");
+
+        Collider[] hits = GetObjectsInLayerAroundPoint(transform.position, NetworkMaxRadius, sinkLayer);
+
+        foreach (Collider collider in hits)
+        {
+            AdjSensor = collider.gameObject;
+            return;
+        }
+
+        InRadiusSensors.Sort();
+        AdjSensor = InRadiusSensors.First().gameObject;
     }
 
     Collider[] GetObjectsInLayerAroundPoint(Vector3 point, float radius, LayerMask layerMask)
@@ -159,16 +202,25 @@ public class SensorController : MonoBehaviour
         }
 
         this.GetComponent<MeshRenderer>().material = BLINKING_MATERIAL;
-
     }
 
     public void ConfigSensors(List<SensorController> sensors) {
         Network = sensors;
     }
 
-    public void SetAsSource()
+    public void SetAsSource(bool set = true)
     {
-        isSource = true;
+        isSource = set;
+    }
+
+    public void CalcDistFromMobileSink(Vector3 MobileSinkPos)
+    {
+        DistFromMobileSink = Vector3.Distance(transform.position, MobileSinkPos);
+    }
+
+    public int CompareTo(SensorController other)
+    {
+        return this.DistFromMobileSink.CompareTo(other.DistFromMobileSink);
     }
 
 }

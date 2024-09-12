@@ -6,14 +6,16 @@ using UnityEngine;
 
 public class BaseController : MonoBehaviour
 {
-    List<SensorController> sensorsList = new List<SensorController>();
+    public List<SensorController> Network = new List<SensorController>();
 
     public SensorController MobileSink;
 
-    float coneAngle = 45f;  // The total angle of the cone (in degrees)
-    int rayCount = 20;      // Number of rays to cast within the cone
+    #region SourceRaycastVars
+    float coneAngle = 180f;  // The total angle of the cone (in degrees)
+    int rayCount = 70;      // Number of rays to cast within the cone
     float rayDistance = 10f;  // The maximum distance of each ray
     LayerMask sensorLayer;     // LayerMask to specify what layers to detect
+    #endregion SourceRaycastVars
 
     public List<SensorController> SourceSensors = new List<SensorController>();
 
@@ -22,45 +24,64 @@ public class BaseController : MonoBehaviour
     {
         sensorLayer = LayerMask.GetMask("Sensor");
 
-        sensorsList = new List<SensorController>();
+        Network = new List<SensorController>();
         SourceSensors = new List<SensorController>();
 
-        Collider[] colliders = GetObjectsInLayerAroundPoint(Vector3.zero, 2000f, LayerMask.GetMask("Sensor"));
+        
+        #region GetSensors
+        Collider[] colliders = GetObjectsInLayerAroundPoint(Vector3.zero, 2000f, sensorLayer);
 
         foreach (Collider collider in colliders)
         {
-            sensorsList.Add(collider.GetComponent<SensorController>());
+            Network.Add(collider.GetComponent<SensorController>());
         }
 
         foreach (Collider collider in colliders)
         {
-            collider.GetComponent<SensorController>().ConfigSensors(sensorsList);
+            collider.GetComponent<SensorController>().ConfigSensors(Network);
         }
+        #endregion GetSensors
 
+        DefineSources();
+        MakeRoutes();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.J))
+        if (Input.GetKeyDown(KeyCode.J))
         {
-            DefineSources();
+            MakeRoutes();
         }
     }
-    void EdmondsKarp()
+    void MakeRoutes()
     {
-        foreach (SensorController sensor in sensorsList)
-        { 
+        foreach (SensorController sensor in Network)
+        {
+            sensor.IdentifyNeighborsSensors();
+            sensor.CalcDistFromMobileSink(MobileSink.transform.position);
+            sensor.BlinkNeighborSensors();
+        }
+
+        foreach (SensorController sensor in Network)
+        {
+            sensor.SetAdjSensor();
         }
     }
 
     // A source will be every vertex wich have no vertex on the oposite side of the mobile sink
     void DefineSources()
     {
-        foreach(SensorController sensor in sensorsList) {
+        SourceSensors.Clear();
+        foreach (SensorController sensor in Network)
+        {
+            sensor.SetAsSource(false);
+
             // Calculate dir from sink to sensor
             Vector3 direction = sensor.transform.position - MobileSink.transform.position;
             direction = direction.normalized;
+
+            int hits = 0;
 
             for (int i = 0; i < rayCount; i++)
             {
@@ -71,22 +92,39 @@ public class BaseController : MonoBehaviour
                 Quaternion rotation = Quaternion.Euler(0, angle, 0);
                 Vector3 rayDirection = rotation * direction;
 
-                // Perform the raycast
+                /*
+                 * Debug only line pls ignore
+                Debug.DrawLine(
+                    sensor.transform.position + (rayDirection * 2f), 
+                    sensor.transform.position + (rayDirection * rayDistance), 
+                    Color.red);
+                */
+
+                // If it doesnt hit anything its a source sensor
                 RaycastHit hit;
-                if (Physics.Raycast(sensor.transform.position, rayDirection, out hit, rayDistance, sensorLayer))
-                {
-                    // Do something if the ray hits an object
-                    Debug.DrawRay(sensor.transform.position, rayDirection * hit.distance, Color.red);
-                    Debug.Log("Hit object: " + hit.collider.name);
-                }
-                else
-                {
-                    // Draw the ray in green if nothing was hit
-                    sensor.SetAsSource();
-                    SourceSensors.Add(sensor);
+                if (
+                    Physics.Raycast(
+                        sensor.transform.position + (rayDirection * 1f), 
+                        rayDirection, 
+                        out hit, 
+                        rayDistance,
+                        sensorLayer)
+                    ){
+                    if(sensor != hit.collider.GetComponent<SensorController>())
+                    {
+                        hits += 1;
+                        // If its a sensor we can just break out code
+                        break;
+                    }
+
                 }
             }
 
+            if (hits == 0)
+            {
+                sensor.SetAsSource();
+                SourceSensors.Add(sensor);
+            }
         }
     }
 
@@ -99,4 +137,7 @@ public class BaseController : MonoBehaviour
         return System.Array.FindAll(colliders, collider => (layerMask == (layerMask | (1 << collider.gameObject.layer))));
     }
 
+    private void OnDrawGizmos()
+    {
+    }
 }
